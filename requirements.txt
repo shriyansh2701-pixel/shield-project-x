@@ -1,0 +1,8 @@
+streamlit
+crewai
+pdfplumber
+sentence-transformers
+chromadb
+python-dotenv
+pydantic
+litellm

@@ -1,0 +1,42 @@
+name: AI Auditor Deployment
+
+on:
+  push:
+    branches:
+      - main  # Triggers whenever you push to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: SSH and Deploy to EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # 1. Enter project directory
+            cd /home/ubuntu/shield-project-x
+            
+            # 2. Pull latest code
+            git pull origin main
+            
+            echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
+            
+            # 3. Clean up old containers/images (to prevent "No space left" errors)
+            sudo docker stop auditor || true
+            sudo docker rm auditor || true
+            sudo docker system prune -f
+            
+            # 4. Build and Run
+            sudo docker build -t auditor .
+            sudo docker run -d \
+              --name auditor \
+              -p 8501:8501 \
+              --env-file .env \
+              --restart always \
+              auditor
